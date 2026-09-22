@@ -1,0 +1,25 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "playwright",
+        "mcp",
+        "--browser",
+        "chromium",
+        "--isolated",
+        "--output-dir",
+        ".playwright-mcp"
+      ]
+    },
+    "playwright-test": {
+      "command": "npx",
+      "args": [
+        "playwright",
+        "run-test-mcp-server",
+        "--config",
+        "e2e/playwright.config.ts"
+      ]
+    }
+  }
+}
