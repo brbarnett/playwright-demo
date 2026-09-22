@@ -355,5 +355,16 @@ Everything else in this guide applies unchanged: locators, fixtures, page object
 - **Isolate test data.** This demo resets shared in-memory data before each test and runs tests one at a time (`workers: 1`) to keep things simple. Real suites should give each test its own data (unique records, or a backend per worker) so they can run fully in parallel.
 - **Review agent-written tests like any other code.** Look for tests that pass without checking anything useful, locators that depend on text likely to change, and duplicated setup.
 - **WebKit on Linux** needs extra system libraries. `npx playwright install --with-deps` installs them (it needs sudo). Without them, run `--project=chromium --project=firefox` locally and let CI cover WebKit.
+- **Headed browsers on WSL2 can freeze Windows.** On some machines, especially laptops with two GPUs, a visible Chromium window that WSL renders through the Windows GPU can bring the whole PC to a near-standstill. Headless runs aren't affected. The fix is to render the headed browser on the CPU, which is fine for ordinary web apps. It's a per-machine setting, so none of this goes in the repo:
+  - Tests and the `playwright-test` agents: set `PW_DISABLE_GPU=1` (read by `e2e/playwright.config.ts`).
+  - Both MCP servers: add local overrides, which take precedence over `.mcp.json` and aren't committed:
+    ```bash
+    # ~/.config/playwright-mcp/no-gpu.json → {"browser":{"launchOptions":{"args":["--disable-gpu"]}}}
+    claude mcp add-json playwright --scope local \
+      '{"type":"stdio","command":"npx","args":["playwright","mcp","--browser","chromium","--isolated","--output-dir",".playwright-mcp","--config","'"$HOME"'/.config/playwright-mcp/no-gpu.json"]}'
+    claude mcp add-json playwright-test --scope local \
+      '{"type":"stdio","command":"npx","args":["playwright","run-test-mcp-server","--config","e2e/playwright.config.ts"],"env":{"PW_DISABLE_GPU":"1"}}'
+    ```
+  - Restart Claude Code (or reconnect the servers in `/mcp`) afterwards.
 - **MCP output** (screenshots and similar) goes to `.playwright-mcp/`, which is git-ignored.
 - **Use headed mode for demos.** Both MCP servers open a visible browser by default. Add `--headless` to their args in `.mcp.json` if you'd rather not see it.

@@ -2,6 +2,11 @@ import { defineConfig, devices } from "@playwright/test";
 
 const isCI = !!process.env.CI;
 
+// Opt-in escape hatch for machines where a *headed* Chromium using the GPU
+// misbehaves (seen on WSL2 with GPU passthrough on hybrid-GPU laptops).
+// Headless runs are unaffected either way.
+const chromiumArgs = process.env.PW_DISABLE_GPU ? ["--disable-gpu"] : [];
+
 export default defineConfig({
   testDir: "./tests",
 
@@ -24,7 +29,10 @@ export default defineConfig({
   },
 
   projects: [
-    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    {
+      name: "chromium",
+      use: { ...devices["Desktop Chrome"], launchOptions: { args: chromiumArgs } },
+    },
     { name: "firefox", use: { ...devices["Desktop Firefox"] } },
     { name: "webkit", use: { ...devices["Desktop Safari"] } },
   ],
