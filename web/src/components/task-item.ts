@@ -42,7 +42,7 @@ import { ConfirmDialog } from "./confirm-dialog";
       </div>
       <div class="task-controls">
         <label [for]="statusId()" class="visually-hidden">Status</label>
-        <select [id]="statusId()" (change)="changeStatus($any($event.target).value)">
+        <select [id]="statusId()" (change)="changeStatus($any($event.target))">
           @for (s of statuses; track s.value) {
             <option [value]="s.value" [selected]="s.value === task().status">{{ s.label }}</option>
           }
@@ -115,8 +115,10 @@ export class TaskItem {
     if (await this.run(() => this.store.update(this.task().id, patch))) this.editing.set(false);
   }
 
-  protected changeStatus(status: TaskStatus) {
-    void this.run(() => this.store.update(this.task().id, { status }));
+  protected async changeStatus(select: HTMLSelectElement) {
+    const status = select.value as TaskStatus;
+    // On failure, show the saved status again rather than the rejected choice.
+    if (!(await this.run(() => this.store.update(this.task().id, { status })))) select.value = this.task().status;
   }
 
   protected clickDelete() {

@@ -68,6 +68,11 @@ export class TasksPage {
     await this.taskItem(title).getByRole("button", { name: "Delete" }).click();
   }
 
+  /** Closes the delete confirmation with the Escape key, like a keyboard user would. */
+  async dismissDeleteDialog() {
+    await this.deleteDialog.press("Escape");
+  }
+
   /** Deletes a task and confirms the dialog (the default behavior). */
   async deleteTask(title: string) {
     await this.clickDelete(title);
