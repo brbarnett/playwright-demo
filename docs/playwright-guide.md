@@ -83,12 +83,18 @@ You don't need to start the app first. `e2e/playwright.config.ts` has a `webServ
 // e2e/tests/create-task.spec.ts
 import { test, expect } from "../fixtures.ts";
 
-test("adds the task to the list", async ({ tasksPage }) => {
-  await tasksPage.addTask("Book client demo", "Playwright + Claude walkthrough");
+test.describe("creating a task", () => {
+  test.beforeEach(async ({ tasksPage }) => {
+    await tasksPage.goto();
+  });
 
-  const item = tasksPage.taskItem("Book client demo");
-  await expect(item).toBeVisible();
-  await expect(item).toContainText("Playwright + Claude walkthrough");
+  test("adds the task to the list", async ({ tasksPage }) => {
+    await tasksPage.addTask("Book client demo", "Playwright + Claude walkthrough");
+
+    const item = tasksPage.taskItem("Book client demo");
+    await expect(item).toBeVisible();
+    await expect(item).toContainText("Playwright + Claude walkthrough");
+  });
 });
 ```
 
@@ -107,12 +113,126 @@ These use the page's accessibility tree, so they don't break when CSS classes or
 **Waiting is automatic.** Actions such as `click()` and `fill()` wait until the element is visible, enabled, and stable. Assertions such as `expect(locator).toBeVisible()` retry until they pass or time out. **You never write `sleep`.** To see this, run `API_DELAY_MS=800 npm run test:e2e`. Every API call gets slower and every test still passes, unchanged.
 
 **Fixtures provide setup.** `e2e/fixtures.ts` extends the base `test` so that every test:
-1. resets the API's data (`POST /api/reset`), and
-2. receives a `tasksPage` that's already on the app.
+1. resets the API's data, both tasks and settings (`POST /api/reset`), before it starts, and
+2. can ask for page objects (`tasksPage`, `settingsPage`) by name.
+
+Fixtures *construct* page objects but don't navigate. Each test (or its `beforeEach`) calls `goto()`, so a test that uses two pages decides the order itself.
 
 ### Page objects
 
-`e2e/pages/TasksPage.ts` gives the page's elements and actions names that match what they do (`addTask`, `editTask`, `deleteTask`). Tests read like user stories, and when the UI changes you update one file instead of every test.
+`e2e/pages/` holds one class per page: `TasksPage.ts` and `SettingsPage.ts`. It also holds `MainNav.ts` for the nav bar that both pages share. A page object gives the page's elements and actions names that match what they do (`addTask`, `deleteTask`, `save`). Tests read like user stories, and when the UI changes you update one file instead of every test. The healer demo in [5.4](#54-keeping-tests-working-the-healer) shows why: renaming a button breaks many tests, and the fix is one line.
+
+### 3.1 Adding a test, step by step
+
+The suite doesn't test the filter tabs yet. Here's how you'd add that by hand. (This walkthrough isn't committed, so the agents in [5.3](#53-writing-tests-with-claude-planner--generator) still have something to write.)
+
+**1. Create the spec file.** Put it in `e2e/tests/`, name it after the feature, and end it in `.spec.ts`. Playwright only picks up files matching that pattern.
+
+```ts
+// e2e/tests/filter-tasks.spec.ts
+import { test, expect } from "../fixtures.ts";   // ← our fixtures, not "@playwright/test"
+```
+
+Importing from `../fixtures.ts` is what gives you the data reset and the page objects. If you import `@playwright/test` directly, your test runs against whatever data the previous test left behind.
+
+**2. Add what's missing to the page object.** `TasksPage` can already find a tab (`filterTab`), but it has no action for clicking one. Add it there, not in the test, so the next test can reuse it:
+
+```ts
+// e2e/pages/TasksPage.ts
+async filterBy(label: FilterLabel) {
+  await this.filterTab(label).click();
+}
+```
+
+**3. Write the test.** Assert what a user would see. The seed data has exactly one done task, "Create repository":
+
+```ts
+test.describe("filtering tasks", () => {
+  test.beforeEach(async ({ tasksPage }) => {
+    await tasksPage.goto();
+  });
+
+  test("the Done tab shows only done tasks", async ({ tasksPage }) => {
+    await tasksPage.filterBy("Done");
+
+    await expect(tasksPage.filterTab("Done")).toHaveAttribute("aria-selected", "true");
+    await expect(tasksPage.tasks).toHaveCount(1);
+    await expect(tasksPage.taskItem("Create repository")).toBeVisible();
+  });
+});
+```
+
+**4. Run just that file** while you work on it:
+
+```bash
+npm run test:e2e -- tests/filter-tasks.spec.ts --project=chromium
+```
+
+**5. Prove it can fail.** A test that has never failed might not be testing anything. Break the feature on purpose. For example, in `web/src/pages/TasksPage.tsx`, change `api.listTasks(filter === "all" ? undefined : filter)` to `api.listTasks(undefined)`. Run the test again and it should fail with `Expected: 1, Received: 3`. Then revert your change.
+
+**6. Run the whole suite** (`npm run test:e2e`) before you open a PR, and let CI run all three browsers.
+
+### 3.2 When the app grows: a second page
+
+The Settings page (`/settings`) shows what adding a page involves. Its settings are stored by the API (`GET`/`PATCH /api/settings`) and change how the Tasks page behaves.
+
+**One page object per page.** `e2e/pages/SettingsPage.ts` follows the same pattern as `TasksPage`: locators by role and label, plus actions such as `save()`. Parts shared by several pages, such as the nav bar, get their own small *component object* (`MainNav.ts`) that each page exposes as `nav`.
+
+```ts
+// e2e/pages/SettingsPage.ts (excerpt)
+this.confirmDelete = this.form.getByRole("checkbox", { name: "Confirm before deleting" });
+
+defaultFilter(label: FilterLabel) {
+  return this.form.getByRole("group", { name: "Default filter" }).getByRole("radio", { name: label });
+}
+
+/** Saves and waits for the server to confirm, so the next step sees the new settings. */
+async save() {
+  await this.saveButton.click();
+  await expect(this.savedMessage).toHaveText("Settings saved");
+}
+```
+
+Note the last line of `save()`. It waits for the app to confirm the save before the test moves on. Without it, a test that saves and then immediately goes to another page might get there before the server has stored anything.
+
+**Register it as a fixture** in `e2e/fixtures.ts`, so tests can ask for it by name:
+
+```ts
+type Fixtures = { resetData: void; tasksPage: TasksPage; settingsPage: SettingsPage };
+
+settingsPage: async ({ page }, use) => {
+  await use(new SettingsPage(page));
+},
+```
+
+**Write tests that cross pages.** Both page objects share the same browser `page`, so a test can change a setting and check its effect elsewhere:
+
+```ts
+// e2e/tests/settings.spec.ts
+test("deletes without asking when confirmation is off", async ({ settingsPage, tasksPage }) => {
+  await settingsPage.goto();
+  await settingsPage.confirmDelete.uncheck();
+  await settingsPage.save();
+
+  await settingsPage.nav.link("Tasks").click();
+  await tasksPage.clickDelete("Create repository");
+
+  await expect(tasksPage.deleteDialog).toBeHidden();
+  await expect(tasksPage.taskItem("Create repository")).toHaveCount(0);
+});
+```
+
+**Mind where state lives.** Playwright gives every test a fresh browser context: new cookies, empty `localStorage`, no leftovers. **Server state is different.** Settings saved by one test would still be there for the next one. That's why `/api/reset` resets settings as well as tasks. Whenever you add something the server stores, add it to the reset too.
+
+### 3.3 Asking Claude to write a test
+
+You don't need the planner and generator agents ([5.3](#53-writing-tests-with-claude-planner--generator)) for everyday tests. For a single behavior, just ask:
+
+> *Add an e2e test that the Escape key closes the delete confirmation without deleting the task. Follow the conventions in e2e/: use our fixtures and page objects, add page-object methods if you need them, then run the new test and the full Chromium suite.*
+
+The repo's [`CLAUDE.md`](../CLAUDE.md) spells out those conventions (fixtures import, page objects, role-based locators, and the "prove it fails" step). Claude Code reads it automatically at the start of every session, so every session writes tests the same way. Keep it up to date as your conventions change.
+
+Use the **agents** when you want coverage for a whole area and a plan to review first. Use a **direct request** when you already know the one test you want.
 
 ### API tests
 
@@ -132,7 +252,7 @@ npm run dev            # in one terminal
 npm run codegen -w e2e # in another
 ```
 
-A browser opens next to the Playwright Inspector. Click through a flow and Playwright writes the test code as you go, choosing role-based locators. Copy the result into a spec and tidy it up. It's a good way to start a test, but it isn't finished code.
+A browser opens next to the Playwright Inspector. Click through a flow and Playwright writes the test code as you go, choosing role-based locators. Copy the result into a spec, then rework it to use the fixtures and page objects. It's a good way to start a test, but it isn't finished code. (On WSL2, see the headed-browser note in [§9](#9-tips-and-gotchas) first.)
 
 ---
 
@@ -355,16 +475,24 @@ Everything else in this guide applies unchanged: locators, fixtures, page object
 - **Isolate test data.** This demo resets shared in-memory data before each test and runs tests one at a time (`workers: 1`) to keep things simple. Real suites should give each test its own data (unique records, or a backend per worker) so they can run fully in parallel.
 - **Review agent-written tests like any other code.** Look for tests that pass without checking anything useful, locators that depend on text likely to change, and duplicated setup.
 - **WebKit on Linux** needs extra system libraries. `npx playwright install --with-deps` installs them (it needs sudo). Without them, run `--project=chromium --project=firefox` locally and let CI cover WebKit.
-- **Headed browsers on WSL2 can freeze Windows.** On some machines, especially laptops with two GPUs, a visible Chromium window that WSL renders through the Windows GPU can bring the whole PC to a near-standstill. Headless runs aren't affected. The fix is to render the headed browser on the CPU, which is fine for ordinary web apps. It's a per-machine setting, so none of this goes in the repo:
-  - Tests and the `playwright-test` agents: set `PW_DISABLE_GPU=1` (read by `e2e/playwright.config.ts`).
-  - Both MCP servers: add local overrides, which take precedence over `.mcp.json` and aren't committed:
-    ```bash
-    # ~/.config/playwright-mcp/no-gpu.json → {"browser":{"launchOptions":{"args":["--disable-gpu"]}}}
-    claude mcp add-json playwright --scope local \
-      '{"type":"stdio","command":"npx","args":["playwright","mcp","--browser","chromium","--isolated","--output-dir",".playwright-mcp","--config","'"$HOME"'/.config/playwright-mcp/no-gpu.json"]}'
-    claude mcp add-json playwright-test --scope local \
-      '{"type":"stdio","command":"npx","args":["playwright","run-test-mcp-server","--config","e2e/playwright.config.ts"],"env":{"PW_DISABLE_GPU":"1"}}'
+- **Headed browsers on WSL2 can freeze Windows.** On some machines, especially laptops with two GPUs, a visible Chromium window that WSL renders through the Windows GPU can bring the whole PC to a near-standstill. Headless runs aren't affected. The fix is to render on the CPU, which is fine for ordinary web apps. It's a per-machine setting, so none of this goes in the repo. There are two levels:
+  - **All of WSL (simplest, covers everything).** Add this to `C:\Users\<you>\.wslconfig`, then run `wsl --shutdown` from Windows:
+    ```ini
+    [wsl2]
+    gpuSupport=false
     ```
-  - Restart Claude Code (or reconnect the servers in `/mcp`) afterwards.
+    Linux GUI apps still work, just rendered in software. You lose GPU compute inside WSL (CUDA, ML frameworks), so skip this if you need that.
+  - **Per tool**, if you need to keep WSL's GPU:
+    - Tests and the `playwright-test` agents: set `PW_DISABLE_GPU=1` (read by `e2e/playwright.config.ts`).
+    - Both MCP servers: add local overrides, which take precedence over `.mcp.json` and aren't committed, then restart Claude Code or reconnect in `/mcp`:
+      ```bash
+      # ~/.config/playwright-mcp/no-gpu.json → {"browser":{"launchOptions":{"args":["--disable-gpu"]}}}
+      claude mcp add-json playwright --scope local \
+        '{"type":"stdio","command":"npx","args":["playwright","mcp","--browser","chromium","--isolated","--output-dir",".playwright-mcp","--config","'"$HOME"'/.config/playwright-mcp/no-gpu.json"]}'
+      claude mcp add-json playwright-test --scope local \
+        '{"type":"stdio","command":"npx","args":["playwright","run-test-mcp-server","--config","e2e/playwright.config.ts"],"env":{"PW_DISABLE_GPU":"1"}}'
+      ```
+    - **Codegen, the Inspector (`--debug`, `page.pause()`), the UI-mode window, and the trace viewer can't be covered this way.** Playwright launches those windows with fixed settings. Instead, serve UI mode and traces to your *Windows* browser (`npm run test:e2e:ui -- --ui-port=8080`, `npx playwright show-trace --port 9323 trace.zip`), and avoid codegen and `--debug` on an affected machine.
+- **Tests run against your *running* dev server.** Locally, `reuseExistingServer` means that if `npm run dev` is already up, the tests use it instead of starting fresh servers. If that server is stale (for example, a file watcher missed a change), the tests exercise old code and fail for reasons that don't match what's on disk. When failures don't make sense, restart `npm run dev` first. CI always starts fresh servers, so it's never affected.
 - **MCP output** (screenshots and similar) goes to `.playwright-mcp/`, which is git-ignored.
 - **Use headed mode for demos.** Both MCP servers open a visible browser by default. Add `--headless` to their args in `.mcp.json` if you'd rather not see it.

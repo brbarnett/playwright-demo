@@ -1,6 +1,10 @@
 import { test, expect } from "../fixtures.ts";
 
 test.describe("validation", () => {
+  test.beforeEach(async ({ tasksPage }) => {
+    await tasksPage.goto();
+  });
+
   for (const [name, title] of [
     ["an empty title", ""],
     ["a whitespace-only title", "   "],

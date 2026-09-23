@@ -36,13 +36,14 @@ npm run test:e2e   # starts both apps automatically, runs the suite
 ## Layout
 
 ```
-api/        Fastify + TypeScript, run directly by Node (no build). In-memory store.
-web/        Vite + React + TypeScript. Proxies /api → :8000.
-e2e/        Playwright Test: config, fixtures, page objects, specs.
+api/        Fastify + TypeScript, run directly by Node (no build). In-memory tasks + settings.
+web/        Vite + React + React Router: Tasks (/) and Settings (/settings). Proxies /api → :8000.
+e2e/        Playwright Test: config, fixtures, page objects (pages/), specs (tests/).
 specs/      Test plans written by the Playwright planner agent.
 .claude/    Playwright test agents (planner, generator, healer) for Claude Code.
 .mcp.json   MCP servers: `playwright` (browser) and `playwright-test` (test runner).
 docs/       The guide, plus the design spec and implementation plan.
+CLAUDE.md   Conventions Claude Code follows in this repo (how to write tests, etc.).
 ```
 
 ## API
@@ -54,7 +55,9 @@ docs/       The guide, plus the design spec and implementation plan.
 | POST | `/api/tasks` | `{ title, description?, status? }` |
 | PATCH | `/api/tasks/:id` | Any of `title`, `description`, `status` |
 | DELETE | `/api/tasks/:id` | |
-| POST | `/api/reset` | Restore seed data (disabled when `NODE_ENV=production`) |
+| GET | `/api/settings` | `{ confirmDelete, defaultFilter }` |
+| PATCH | `/api/settings` | Any of `confirmDelete` (boolean), `defaultFilter` (`all` / `todo` / `in_progress` / `done`) |
+| POST | `/api/reset` | Restore seed tasks and default settings (disabled when `NODE_ENV=production`) |
 | GET | `/api/health` | Readiness check |
 
 Errors are `{ "error": "Title is required" }`-style JSON.
@@ -65,8 +68,8 @@ A suggested order for a live walkthrough, about 30–45 minutes. Everything runs
 
 **Part 1: Playwright Test**
 
-1. **The app.** `npm run dev`, then show add, edit, delete, filter, and the validation error.
-2. **The suite.** Open `e2e/tests/create-task.spec.ts` and `e2e/pages/TasksPage.ts`. Point out the role-based locators, the fixture that resets data, and the page object. Run `npm run test:e2e`.
+1. **The app.** `npm run dev`, then show add, edit, delete, filter, and the validation error. Open **Settings**, turn off "Confirm before deleting", save, and show that Delete no longer asks.
+2. **The suite.** Open `e2e/tests/create-task.spec.ts` and `e2e/pages/TasksPage.ts`. Point out the role-based locators, the fixture that resets data, and the page object. Then `e2e/tests/settings.spec.ts` for a test that crosses two pages. Run `npm run test:e2e`.
 3. **UI mode.** `npm run test:e2e:ui`. Run `edit-task.spec.ts`, click through the steps (time-travel), and use the locator picker.
 4. **Auto-waiting.** Stop `npm run dev`, then run `API_DELAY_MS=800 npm run test:e2e -- --project=chromium`. It's slower, still green, and has no sleeps.
 5. **A failure and its trace.** Break something (for example, change the "Add task" copy), run with `--trace on`, and open the report to show the trace. Revert.

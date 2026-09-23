@@ -22,3 +22,13 @@ export const STATUS_LABELS: Record<TaskStatus, string> = {
   in_progress: "In progress",
   done: "Done",
 };
+
+export const FILTER_OPTIONS: { value: Filter; label: string }[] = [
+  { value: "all", label: "All" },
+  ...(Object.entries(STATUS_LABELS) as [TaskStatus, string][]).map(([value, label]) => ({ value, label })),
+];
+
+export type Settings = {
+  confirmDelete: boolean;
+  defaultFilter: Filter;
+};

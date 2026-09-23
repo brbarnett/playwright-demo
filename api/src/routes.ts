@@ -1,6 +1,12 @@
 import { setTimeout as sleep } from "node:timers/promises";
 import type { FastifyError, FastifyInstance } from "fastify";
+import { TASK_FILTERS, type SettingsPatch, type SettingsStore } from "./settings.ts";
 import { TASK_STATUSES, type NewTask, type Store, type TaskPatch, type TaskStatus } from "./store.ts";
+
+export type Stores = {
+  tasks: Store;
+  settings: SettingsStore;
+};
 
 export type RouteOptions = {
   delayMs: number;
@@ -12,6 +18,8 @@ const MESSAGES = {
   titleTooLong: "Title must be 120 characters or fewer",
   descriptionTooLong: "Description must be 1000 characters or fewer",
   badStatus: `Status must be one of: ${TASK_STATUSES.join(", ")}`,
+  badConfirmDelete: "Confirm delete must be true or false",
+  badDefaultFilter: `Default filter must be one of: ${TASK_FILTERS.join(", ")}`,
   notFound: "Task not found",
 };
 
@@ -28,6 +36,14 @@ const createBody = {
 const patchBody = {
   type: "object",
   properties: { title: titleSchema, description: descriptionSchema, status: statusSchema },
+} as const;
+
+const settingsPatchBody = {
+  type: "object",
+  properties: {
+    confirmDelete: { type: "boolean" },
+    defaultFilter: { type: "string", enum: TASK_FILTERS },
+  },
 } as const;
 
 const listQuery = {
@@ -50,12 +66,18 @@ function validationMessage(err: FastifyError): string {
       return MESSAGES.descriptionTooLong;
     case "status":
       return MESSAGES.badStatus;
+    case "confirmDelete":
+      return MESSAGES.badConfirmDelete;
+    case "defaultFilter":
+      return MESSAGES.badDefaultFilter;
     default:
       return "Invalid request";
   }
 }
 
-export function registerRoutes(app: FastifyInstance, store: Store, opts: RouteOptions): void {
+export function registerRoutes(app: FastifyInstance, stores: Stores, opts: RouteOptions): void {
+  const { tasks, settings } = stores;
+
   app.setErrorHandler<FastifyError>((err, _req, reply) => {
     if (err.validation) {
       return reply.code(400).send({ error: validationMessage(err) });
@@ -78,37 +100,46 @@ export function registerRoutes(app: FastifyInstance, store: Store, opts: RouteOp
   app.get<{ Querystring: { status?: TaskStatus } }>(
     "/api/tasks",
     { schema: { querystring: listQuery } },
-    async (req) => store.list(req.query.status),
+    async (req) => tasks.list(req.query.status),
   );
 
   app.get<{ Params: { id: string } }>("/api/tasks/:id", async (req, reply) => {
-    const task = store.get(req.params.id);
+    const task = tasks.get(req.params.id);
     return task ?? reply.code(404).send({ error: MESSAGES.notFound });
   });
 
   app.post<{ Body: NewTask }>("/api/tasks", { schema: { body: createBody } }, async (req, reply) => {
-    return reply.code(201).send(store.create(req.body));
+    return reply.code(201).send(tasks.create(req.body));
   });
 
   app.patch<{ Params: { id: string }; Body: TaskPatch }>(
     "/api/tasks/:id",
     { schema: { body: patchBody } },
     async (req, reply) => {
-      const task = store.update(req.params.id, req.body);
+      const task = tasks.update(req.params.id, req.body);
       return task ?? reply.code(404).send({ error: MESSAGES.notFound });
     },
   );
 
   app.delete<{ Params: { id: string } }>("/api/tasks/:id", async (req, reply) => {
-    return store.remove(req.params.id)
+    return tasks.remove(req.params.id)
       ? reply.code(204).send()
       : reply.code(404).send({ error: MESSAGES.notFound });
   });
 
+  app.get("/api/settings", async () => settings.get());
+
+  app.patch<{ Body: SettingsPatch }>(
+    "/api/settings",
+    { schema: { body: settingsPatchBody } },
+    async (req) => settings.update(req.body),
+  );
+
   // Test-only escape hatch so every e2e test starts from the same data.
   if (opts.enableReset) {
     app.post("/api/reset", async (_req, reply) => {
-      store.reset();
+      tasks.reset();
+      settings.reset();
       return reply.code(204).send();
     });
   }

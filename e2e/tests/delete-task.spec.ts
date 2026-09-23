@@ -1,6 +1,10 @@
 import { test, expect } from "../fixtures.ts";
 
 test.describe("deleting a task", () => {
+  test.beforeEach(async ({ tasksPage }) => {
+    await tasksPage.goto();
+  });
+
   test("removes the task after confirming", async ({ tasksPage }) => {
     await tasksPage.deleteTask("Create repository");
 

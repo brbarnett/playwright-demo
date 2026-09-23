@@ -1,9 +1,11 @@
 import { test as base, expect } from "@playwright/test";
+import { SettingsPage } from "./pages/SettingsPage.ts";
 import { TasksPage } from "./pages/TasksPage.ts";
 
 type Fixtures = {
   resetData: void;
   tasksPage: TasksPage;
+  settingsPage: SettingsPage;
 };
 
 export const test = base.extend<Fixtures>({
@@ -17,10 +19,14 @@ export const test = base.extend<Fixtures>({
     { auto: true },
   ],
 
+  // Page objects are constructed here but tests navigate themselves
+  // (`await tasksPage.goto()`), so a test can use several pages in any order.
   tasksPage: async ({ page }, use) => {
-    const tasksPage = new TasksPage(page);
-    await tasksPage.goto();
-    await use(tasksPage);
+    await use(new TasksPage(page));
+  },
+
+  settingsPage: async ({ page }, use) => {
+    await use(new SettingsPage(page));
   },
 });
 

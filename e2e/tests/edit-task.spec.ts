@@ -1,6 +1,10 @@
 import { test, expect } from "../fixtures.ts";
 
 test.describe("editing a task", () => {
+  test.beforeEach(async ({ tasksPage }) => {
+    await tasksPage.goto();
+  });
+
   test("shows the new title right away and after a reload", async ({ tasksPage, page }) => {
     await tasksPage.editTask("Write project README", "Write README and CONTRIBUTING");
 

@@ -29,4 +29,15 @@ test.describe("tasks API", () => {
     expect(res.status()).toBe(404);
     expect(await res.json()).toEqual({ error: "Task not found" });
   });
+
+  test("updates settings and validates them", async ({ request }) => {
+    const ok = await request.patch("/api/settings", { data: { defaultFilter: "done" } });
+    expect(await ok.json()).toEqual({ confirmDelete: true, defaultFilter: "done" });
+
+    const bad = await request.patch("/api/settings", { data: { defaultFilter: "later" } });
+    expect(bad.status()).toBe(400);
+    expect(await bad.json()).toEqual({
+      error: "Default filter must be one of: all, todo, in_progress, done",
+    });
+  });
 });

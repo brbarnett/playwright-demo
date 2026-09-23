@@ -1,4 +1,6 @@
 import { expect, type Locator, type Page } from "@playwright/test";
+import { MainNav } from "./MainNav.ts";
+import type { FilterLabel } from "./SettingsPage.ts";
 
 /**
  * Page object for the Task Tracker. Locators use roles and labels only,
@@ -6,6 +8,7 @@ import { expect, type Locator, type Page } from "@playwright/test";
  */
 export class TasksPage {
   readonly page: Page;
+  readonly nav: MainNav;
   readonly heading: Locator;
   readonly newTaskForm: Locator;
   readonly titleInput: Locator;
@@ -18,7 +21,8 @@ export class TasksPage {
 
   constructor(page: Page) {
     this.page = page;
-    this.heading = page.getByRole("heading", { name: "Task Tracker" });
+    this.nav = new MainNav(page);
+    this.heading = page.getByRole("heading", { level: 1, name: "Tasks" });
     this.newTaskForm = page.getByRole("form", { name: "New task" });
     this.titleInput = this.newTaskForm.getByLabel("Title");
     this.descriptionInput = this.newTaskForm.getByLabel("Description");
@@ -32,6 +36,10 @@ export class TasksPage {
   async goto() {
     await this.page.goto("/");
     await expect(this.heading).toBeVisible();
+  }
+
+  filterTab(label: FilterLabel): Locator {
+    return this.page.getByRole("tablist", { name: "Filter tasks" }).getByRole("tab", { name: label });
   }
 
   taskItem(title: string): Locator {
@@ -55,8 +63,14 @@ export class TasksPage {
     await form.getByRole("button", { name: "Save" }).click();
   }
 
-  async deleteTask(title: string) {
+  /** Clicks the row's Delete button. Whether a confirmation appears depends on settings. */
+  async clickDelete(title: string) {
     await this.taskItem(title).getByRole("button", { name: "Delete" }).click();
+  }
+
+  /** Deletes a task and confirms the dialog (the default behavior). */
+  async deleteTask(title: string) {
+    await this.clickDelete(title);
     await this.deleteDialog.getByRole("button", { name: "Delete" }).click();
   }
 }

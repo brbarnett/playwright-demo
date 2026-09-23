@@ -1,4 +1,4 @@
-import type { NewTask, Task, TaskPatch, TaskStatus } from "./types.ts";
+import type { NewTask, Settings, Task, TaskPatch, TaskStatus } from "./types.ts";
 
 export class ApiError extends Error {}
 
@@ -28,6 +28,9 @@ export const api = {
   updateTask: (id: string, patch: TaskPatch) =>
     request<Task>(`/tasks/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
   deleteTask: (id: string) => request<void>(`/tasks/${id}`, { method: "DELETE" }),
+  getSettings: () => request<Settings>("/settings"),
+  updateSettings: (patch: Partial<Settings>) =>
+    request<Settings>("/settings", { method: "PATCH", body: JSON.stringify(patch) }),
 };
 
 export function errorMessage(err: unknown): string {

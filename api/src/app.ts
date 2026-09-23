@@ -1,4 +1,5 @@
 import Fastify, { type FastifyInstance } from "fastify";
+import { createSettingsStore } from "./settings.ts";
 import { createStore } from "./store.ts";
 import { registerRoutes } from "./routes.ts";
 
@@ -10,7 +11,7 @@ export type AppOptions = {
 
 export function buildApp(opts: AppOptions = {}): FastifyInstance {
   const app = Fastify({ logger: opts.logger ?? false });
-  registerRoutes(app, createStore(), {
+  registerRoutes(app, { tasks: createStore(), settings: createSettingsStore() }, {
     delayMs: opts.delayMs ?? 0,
     enableReset: opts.enableReset ?? true,
   });

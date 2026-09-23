@@ -1,15 +1,16 @@
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { errorMessage } from "../api.ts";
 import { STATUS_LABELS, type Task, type TaskPatch, type TaskStatus } from "../types.ts";
 import { ConfirmDialog } from "./ConfirmDialog.tsx";
 
 type Props = {
   task: Task;
+  confirmDelete: boolean;
   onUpdate: (id: string, patch: TaskPatch) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
 };
 
-export function TaskItem({ task, onUpdate, onDelete }: Props) {
+export function TaskItem({ task, confirmDelete, onUpdate, onDelete }: Props) {
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [title, setTitle] = useState(task.title);
@@ -34,12 +35,12 @@ export function TaskItem({ task, onUpdate, onDelete }: Props) {
     setEditing(true);
   }
 
-  async function handleSave(e: FormEvent) {
+  async function handleSave(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     if (await run(() => onUpdate(task.id, { title, description }))) setEditing(false);
   }
 
-  async function handleConfirmDelete() {
+  async function handleDelete() {
     setConfirming(false);
     await run(() => onDelete(task.id));
   }
@@ -102,7 +103,11 @@ export function TaskItem({ task, onUpdate, onDelete }: Props) {
         <button type="button" onClick={startEditing}>
           Edit
         </button>
-        <button type="button" className="danger-outline" onClick={() => setConfirming(true)}>
+        <button
+          type="button"
+          className="danger-outline"
+          onClick={() => (confirmDelete ? setConfirming(true) : handleDelete())}
+        >
           Delete
         </button>
       </div>
@@ -111,7 +116,7 @@ export function TaskItem({ task, onUpdate, onDelete }: Props) {
           title="Delete task?"
           message={`"${task.title}" will be permanently removed.`}
           confirmLabel="Delete"
-          onConfirm={handleConfirmDelete}
+          onConfirm={handleDelete}
           onCancel={() => setConfirming(false)}
         />
       )}

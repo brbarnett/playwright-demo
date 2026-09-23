@@ -147,3 +147,44 @@ test("unknown routes return a JSON 404", async () => {
   assert.equal(res.statusCode, 404);
   assert.deepEqual(res.json(), { error: "Not found" });
 });
+
+test("GET /api/settings returns the defaults", async () => {
+  const app = buildApp();
+  const res = await app.inject({ method: "GET", url: "/api/settings" });
+  assert.equal(res.statusCode, 200);
+  assert.deepEqual(res.json(), { confirmDelete: true, defaultFilter: "all" });
+});
+
+test("PATCH /api/settings updates only the given fields", async () => {
+  const app = buildApp();
+  const res = await app.inject({
+    method: "PATCH",
+    url: "/api/settings",
+    payload: { defaultFilter: "done" },
+  });
+  assert.equal(res.statusCode, 200);
+  assert.deepEqual(res.json(), { confirmDelete: true, defaultFilter: "done" });
+
+  const again = await app.inject({ method: "GET", url: "/api/settings" });
+  assert.deepEqual(again.json(), { confirmDelete: true, defaultFilter: "done" });
+});
+
+for (const [name, payload, error] of [
+  ["a non-boolean confirmDelete", { confirmDelete: "no" }, "Confirm delete must be true or false"],
+  ["an unknown defaultFilter", { defaultFilter: "later" }, "Default filter must be one of: all, todo, in_progress, done"],
+] as const) {
+  test(`PATCH /api/settings rejects ${name}`, async () => {
+    const app = buildApp();
+    const res = await app.inject({ method: "PATCH", url: "/api/settings", payload });
+    assert.equal(res.statusCode, 400);
+    assert.deepEqual(res.json(), { error });
+  });
+}
+
+test("POST /api/reset also restores default settings", async () => {
+  const app = buildApp();
+  await app.inject({ method: "PATCH", url: "/api/settings", payload: { confirmDelete: false } });
+  await app.inject({ method: "POST", url: "/api/reset" });
+  const res = await app.inject({ method: "GET", url: "/api/settings" });
+  assert.deepEqual(res.json(), { confirmDelete: true, defaultFilter: "all" });
+});

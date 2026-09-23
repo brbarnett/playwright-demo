@@ -1,6 +1,10 @@
 import { test, expect } from "../fixtures.ts";
 
 test.describe("creating a task", () => {
+  test.beforeEach(async ({ tasksPage }) => {
+    await tasksPage.goto();
+  });
+
   test("adds the task to the list", async ({ tasksPage }) => {
     await tasksPage.addTask("Book client demo", "Playwright + Claude walkthrough");
 

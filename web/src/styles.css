@@ -44,7 +44,48 @@ body {
 .app {
   max-width: 720px;
   margin: 0 auto;
-  padding: 32px 16px 64px;
+  padding: 24px 16px 64px;
+}
+
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  margin: 0;
+  font-weight: 700;
+}
+
+nav {
+  display: flex;
+  gap: 4px;
+}
+
+nav a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+  padding: 6px 12px;
+  border-radius: 6px;
+}
+
+nav a:hover {
+  color: var(--text);
+}
+
+nav a[aria-current="page"] {
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.page {
   display: grid;
   gap: 20px;
 }
@@ -64,9 +105,50 @@ h3 {
   font-size: 1rem;
 }
 
-.subtitle {
-  margin: 4px 0 0;
+.settings-form fieldset {
+  border: 0;
+  padding: 0;
+  margin: 20px 0 0;
+}
+
+.settings-form legend {
+  padding: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+label.choice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  font-weight: 400;
+}
+
+label.choice input {
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.hint {
+  margin: 0 0 12px;
   color: var(--muted);
+  font-size: 0.85rem;
+}
+
+label.choice + .hint {
+  margin-left: 24px;
+}
+
+.settings-form .actions {
+  align-items: center;
+  margin-top: 8px;
+}
+
+.saved {
+  margin: 0 auto 0 0;
+  color: var(--done);
+  font-size: 0.875rem;
 }
 
 .card {
