@@ -37,7 +37,7 @@ npm run test:e2e   # starts both apps automatically, runs the suite
 
 ```
 api/        Fastify + TypeScript, run directly by Node (no build). In-memory tasks + settings.
-web/        Vite + React + React Router: Tasks (/) and Settings (/settings). Proxies /api → :8000.
+web/        Angular 20 (Angular CLI): Tasks (/) and Settings (/settings). Proxies /api → :8000.
 e2e/        Playwright Test: config, fixtures, page objects (pages/), specs (tests/).
 specs/      Test plans written by the Playwright planner agent.
 .claude/    Playwright test agents (planner, generator, healer) for Claude Code.
@@ -79,7 +79,7 @@ A suggested order for a live walkthrough, about 30–45 minutes. Everything runs
 6. **Drive.** *"Open http://localhost:5173, add three tasks for planning an offsite, mark one done, delete another."*
 7. **Debug.** `git switch demo/bug`. *"When I edit a task's title and click Save, the old title stays until I refresh. Reproduce it, find the cause, fix it, and run the e2e tests."* Afterwards run `git switch main` (discard Claude's fix with `git checkout .`, or commit it on the branch).
 8. **Author.** *"Use the playwright-test-planner agent to plan tests for status filtering and changing status. Save to specs/status.md."* Review the plan, then *"Use the playwright-test-generator agent to generate tests for specs/status.md."* Run them.
-9. **Heal** (contrast it with step 7: here the UI change is *intentional*, so the tests are the thing that is out of date). Rename **Add task** to **Create task** in `web/src/components/TaskForm.tsx`, run the suite (red), then *"Use the playwright-test-healer agent to fix the failing tests."*
+9. **Heal** (contrast it with step 7: here the UI change is *intentional*, so the tests are the thing that is out of date). Rename **Add task** to **Create task** in `web/src/components/task-form.ts`, run the suite (red), then *"Use the playwright-test-healer agent to fix the failing tests."*
 10. **Close.** Go back to the guide's [workflow diagram](docs/playwright-guide.md#6-the-day-to-day-workflow) and the [Angular + Java section](docs/playwright-guide.md#8-using-this-with-angular--java).
 
 Reset between rehearsals with `git checkout . && git clean -fd e2e/tests specs` (this discards generated tests and plans) and restart `npm run dev`.

@@ -1,6 +1,6 @@
 # Playwright and Claude: A Practical Guide
 
-This guide explains how to install Playwright, get it running, and use it to **write** and **debug** end-to-end tests, both by hand and with Claude Code. It uses this repo's Task Tracker app for every example, but nothing here depends on React or Node. The last section shows how to set up the same thing for an Angular + Java app.
+This guide explains how to install Playwright, get it running, and use it to **write** and **debug** end-to-end tests, both by hand and with Claude Code. It uses this repo's Task Tracker app for every example, but nothing here depends on the web framework or Node. The last section shows how to set up the same thing for an Angular + Java app.
 
 - [1. The mental model](#1-the-mental-model)
 - [2. Install and run](#2-install-and-run)
@@ -168,7 +168,7 @@ test.describe("filtering tasks", () => {
 npm run test:e2e -- tests/filter-tasks.spec.ts --project=chromium
 ```
 
-**5. Prove it can fail.** A test that has never failed might not be testing anything. Break the feature on purpose. For example, in `web/src/pages/TasksPage.tsx`, change `api.listTasks(filter === "all" ? undefined : filter)` to `api.listTasks(undefined)`. Run the test again and it should fail with `Expected: 1, Received: 3`. Then revert your change.
+**5. Prove it can fail.** A test that has never failed might not be testing anything. Break the feature on purpose. For example, in `web/src/task-store.ts`, change `api.listTasks(filter === "all" ? undefined : filter)` to `api.listTasks(undefined)`. Run the test again and it should fail with `Expected: 1, Received: 3`. Then revert your change.
 
 **6. Run the whole suite** (`npm run test:e2e`) before you open a PR, and let CI run all three browsers.
 
@@ -373,7 +373,7 @@ In a healthy suite most failures come from the first row. Someone changes the UI
 - **Never run it just to turn a red build green.** Red means "find out why."
 - **Check what it changed.** Updated *locators* are usually fine. Changed *assertions* (what the test expects to happen) deserve suspicion.
 
-To try it out, rename the **Add task** button to **Create task** in `web/src/components/TaskForm.tsx`, then run `npm run test:e2e -- --project=chromium`. Several tests fail. Then ask:
+To try it out, rename the **Add task** button to **Create task** in `web/src/components/task-form.ts`, then run `npm run test:e2e -- --project=chromium`. Several tests fail. Then ask:
 
 > *Use the playwright-test-healer agent to fix the failing tests.*
 
@@ -394,7 +394,7 @@ Edit a task's title and click **Save**. The old title is still shown until you r
 
 > *When I edit a task's title and click Save, the old title keeps showing until I refresh. Reproduce it in the browser, find the cause, and fix it. Then run the e2e suite.*
 
-Claude reproduces the problem in the browser, checks the network tab (the `PATCH` returns the new title, so the server is fine), follows the problem into the React state update, fixes it, and runs `edit-task.spec.ts`, which catches this exact bug, to confirm. That's a complete debugging loop: reproduce, diagnose, fix, verify.
+Claude reproduces the problem in the browser, checks the network tab (the `PATCH` returns the new title, so the server is fine), follows the problem into the task store's signal update, fixes it, and runs `edit-task.spec.ts`, which catches this exact bug, to confirm. That's a complete debugging loop: reproduce, diagnose, fix, verify.
 
 ---
 

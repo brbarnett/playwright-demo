@@ -1,11 +1,11 @@
 # Playwright Demo
 
-A Task Tracker (Fastify API + Vite/React web) used to demo Playwright e2e testing and Playwright MCP with Claude Code. See `README.md` for commands and `docs/playwright-guide.md` for the full guide.
+A Task Tracker (Fastify API + Angular 20 web) used to demo Playwright e2e testing and Playwright MCP with Claude Code. See `README.md` for commands and `docs/playwright-guide.md` for the full guide.
 
 ## Layout
 
 - `api/`: Fastify + TypeScript, run directly by Node 26 (no build). In-memory stores for tasks (`store.ts`) and settings (`settings.ts`). Unit tests in `api/test/` (`node:test`).
-- `web/`: Vite + React + React Router. Pages in `web/src/pages/`, shared components in `web/src/components/`.
+- `web/`: Angular 20.3 (standalone components, signals, zoneless) built with the Angular CLI. Pages in `web/src/pages/`, shared components in `web/src/components/`, Tasks page state in `web/src/task-store.ts`. Pinned to TypeScript 5.9 (Angular 20 needs `<6.0`); `api/` and `e2e/` use TypeScript 7.
 - `e2e/`: Playwright Test. Config, `fixtures.ts`, page objects in `pages/`, specs in `tests/`.
 - `specs/`: Markdown test plans from the `playwright-test-planner` agent (not runnable code).
 

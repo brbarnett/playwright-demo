@@ -23,4 +23,10 @@ test.describe("editing a task", () => {
     await expect(tasksPage.taskItem("Set up CI pipeline")).toBeVisible();
     await expect(tasksPage.taskItem("Something else")).toHaveCount(0);
   });
+
+  test("puts the cursor in the title field", async ({ tasksPage }) => {
+    const form = await tasksPage.startEditing("Set up CI pipeline");
+
+    await expect(form.getByLabel("Title")).toBeFocused();
+  });
 });

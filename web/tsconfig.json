@@ -2,16 +2,20 @@
   "compilerOptions": {
     "target": "es2022",
     "lib": ["es2022", "dom", "dom.iterable"],
-    "module": "esnext",
+    "module": "preserve",
     "moduleResolution": "bundler",
-    "jsx": "react-jsx",
     "strict": true,
-    "noEmit": true,
-    "allowImportingTsExtensions": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
     "isolatedModules": true,
-    "verbatimModuleSyntax": true,
     "skipLibCheck": true,
-    "types": ["vite/client"]
+    "experimentalDecorators": true
   },
-  "include": ["src"]
+  "angularCompilerOptions": {
+    "strictTemplates": true,
+    "strictInjectionParameters": true,
+    "strictInputAccessModifiers": true
+  },
+  "files": [],
+  "references": [{ "path": "./tsconfig.app.json" }]
 }

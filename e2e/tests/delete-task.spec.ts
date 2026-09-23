@@ -23,4 +23,19 @@ test.describe("deleting a task", () => {
     await expect(tasksPage.taskItem("Create repository")).toBeVisible();
     await expect(tasksPage.tasks).toHaveCount(3);
   });
+
+  test("keeps the task when the dialog is dismissed with Escape", async ({ tasksPage }) => {
+    await tasksPage.clickDelete("Create repository");
+    await expect(tasksPage.deleteDialog).toBeVisible();
+
+    await tasksPage.dismissDeleteDialog();
+
+    await expect(tasksPage.deleteDialog).toBeHidden();
+    await expect(tasksPage.taskItem("Create repository")).toBeVisible();
+    await expect(tasksPage.tasks).toHaveCount(3);
+
+    // The row still works: the dialog opens again.
+    await tasksPage.clickDelete("Create repository");
+    await expect(tasksPage.deleteDialog).toBeVisible();
+  });
 });

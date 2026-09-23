@@ -1,4 +1,4 @@
-import type { NewTask, Settings, Task, TaskPatch, TaskStatus } from "./types.ts";
+import type { NewTask, Settings, Task, TaskPatch, TaskStatus } from "./types";
 
 export class ApiError extends Error {}
 
