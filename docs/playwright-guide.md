@@ -294,7 +294,7 @@ The trace includes every action, a DOM snapshot before and after each one, netwo
 
 ### HTML report
 
-After any run: `npm run report -w e2e`. It shows failures, error messages, screenshots of failures, and traces.
+After any run: `npm run report` from the repo root. The report is written to `e2e/playwright-report/`, next to the config, so a bare `npx playwright show-report` at the root won't find it. It shows failures, error messages, screenshots of failures, and traces.
 
 ### VS Code
 

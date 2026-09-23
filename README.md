@@ -27,7 +27,7 @@ npm run test:e2e   # starts both apps automatically, runs the suite
 | `npm test` | API unit tests (`node:test`) |
 | `npm run test:e2e` | Playwright suite, all browsers. Pass args after `--`, e.g. `-- --project=chromium` |
 | `npm run test:e2e:ui` | Playwright UI mode |
-| `npm run report -w e2e` | Open the last HTML report |
+| `npm run report` | Open the last HTML report (it lives in `e2e/playwright-report/`) |
 | `npm run codegen -w e2e` | Record a test by clicking through the app (needs `npm run dev`) |
 | `npm run typecheck` | TypeScript across all workspaces |
 
