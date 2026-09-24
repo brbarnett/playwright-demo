@@ -54,7 +54,7 @@ export class TaskStore {
     const filter = this.filter();
     this.tasks.update((ts) =>
       (ts ?? [])
-        .map((t) => (t.id === updated.id ? updated : t))
+        .map((t) => (t.id === updated.id ? { ...updated, ...t } : t))
         .filter((t) => filter === "all" || t.status === filter),
     );
   }
